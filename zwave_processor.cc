@@ -14,10 +14,10 @@ using namespace OpenZWave;
 namespace zwave_app {
 namespace {
 //-----------------------------------------------------------------------------
-// <OnNotification>
+// <NotificationFunc>
 // Callback that is triggered when a value, group or node changes
 //-----------------------------------------------------------------------------
-void OnNotification(Notification const *notification, void *context) {
+void NotificationFunc(Notification const *notification, void *context) {
     if (context == nullptr) {
         return;
     }
@@ -28,8 +28,14 @@ void OnNotification(Notification const *notification, void *context) {
 
 
 
-ZWaveProcessor::ZWaveProcessor(const std::string& zwave_dongle_dev_path) {
+ZWaveProcessor::ZWaveProcessor(const std::string& zwave_dongle_dev_path) : zwave_dongle_dev_path_(zwave_dongle_dev_path) {
 
+}
+
+void ZWaveProcessor::Command(char command) {
+    std::lock_guard<std::mutex> lock(command_mutex_);
+    command_queue_.push(command);
+    command_condition_.notify_one();
 }
 
 void ZWaveProcessor::OnNotification(OpenZWave::Notification const *notification) {
@@ -154,14 +160,14 @@ void ZWaveProcessor::OnNotification(OpenZWave::Notification const *notification)
 
   case Notification::Type_DriverFailed: {
     initFailed = true;
-    pthread_cond_broadcast(&initCond);
+  //  pthread_cond_broadcast(&initCond);
     break;
   }
 
   case Notification::Type_AwakeNodesQueried:
   case Notification::Type_AllNodesQueried:
   case Notification::Type_AllNodesQueriedSomeDead: {
-    pthread_cond_broadcast(&initCond);
+   // pthread_cond_broadcast(&initCond);
     break;
   }
 
@@ -182,8 +188,7 @@ void ZWaveProcessor::OnNotification(OpenZWave::Notification const *notification)
 }
 
 
-/*
-void TurnOnThingy(uint8_t node_id) {
+void ZWaveProcessor::TurnOnSwitchNode(uint8_t node_id, bool value) {
     for (const auto& item : nodes_) {
         if (item->m_nodeId != node_id) {
             continue;
@@ -194,12 +199,11 @@ void TurnOnThingy(uint8_t node_id) {
               continue;
           }
 
-          Manager::Get()->SetValue(v, true);
-
+          Manager::Get()->SetValue(v, value);
         }
     }
 }
-*/
+
 
 //-----------------------------------------------------------------------------
 // <GetNodeInfo>
@@ -250,21 +254,51 @@ ValueID GetValueID(NodeInfo *nodeInfo, uint8 commandClassID, int index = 0) {
 }
 */
 
+void ZWaveProcessor::DoNextCommand() {
+ //   std::lock_guard<std::mutex> lock(command_mutex_);
+
+    if (command_queue_.empty()) {
+      return;
+    }
+
+    switch (command_queue_.front()) {
+    case 'q': {
+        is_exit_ = true;
+      break;
+    }
+
+    case 'f': {
+      TurnOnSwitchNode(2,true);
+      break;
+    }
+
+    case 'g': {
+      TurnOnSwitchNode(2,false);
+     break;
+    }
+
+      default: {
+        printf("unkown command %c\n",command_queue_.front());
+        break;
+      }
+
+    }
+
+    command_queue_.pop();
+}
 
 
-/*
-void MainThread()
 
-  string port = "/dev/ttyACM0";
-  pthread_mutexattr_t mutexattr;
+bool ZWaveProcessor::IsExit() {
+    return is_exit_;
+}
 
-  // Set up mutual exclusion so that this thread has priority
-  pthread_mutexattr_init(&mutexattr);
-  pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&critical_section_, &mutexattr);
-  pthread_mutexattr_destroy(&mutexattr);
+void ZWaveProcessor::MainThreadFunc(ZWaveProcessor* processor) {
 
-  pthread_mutex_lock(&initMutex);
+  std::unique_lock<std::mutex> lock(processor->command_mutex_);
+
+
+  const string port = processor->zwave_dongle_dev_path_;
 
   printf("\n Creating Options \n");
 
@@ -284,44 +318,39 @@ void MainThread()
   printf("\n Creating Manager \n");
 
   Manager::Create();
-  Manager::Get()->AddWatcher(OnNotification, NULL);
+  Manager::Get()->AddWatcher(NotificationFunc, processor);
   Manager::Get()->AddDriver(port);
 
-  // Release the critical section
-  pthread_cond_wait(&initCond, &initMutex);
-
   while (true) {
+    printf("start waiting!\n");
 
-    // Press ENTER to gracefully exit.
-    if (cin.get() == 'q') {
-      Manager::Get()->WriteConfig(homeId);
+    processor->command_condition_.wait(lock,[processor]() {
+      return !processor->command_queue_.empty();
+    });
+
+    printf("not waiting!\n");
+    processor->DoNextCommand();
+
+    if (processor->IsExit()) {
       break;
-    }
-
-    if (cin.get() == 'a') {
-      OpenZWave::Log::Write(LogLevel_Info, "Trying to add...");
-      Manager::Get()->AddNode(homeId);
-    }
-
-    if (cin.get() == 'o') {
-        OpenZWave::Log::Write(LogLevel_Info, "Turning on node 2...");
-        TurnOnThingy(2);
     }
   }
 
+  printf("cleaning up\n");
   // program exit (clean up)
+  Manager::Get()->WriteConfig(processor->homeId);
+
   if (strcasecmp(port.c_str(), "usb") == 0) {
     Manager::Get()->RemoveDriver("HID Controller");
   } else {
     Manager::Get()->RemoveDriver(port);
   }
-  Manager::Get()->RemoveWatcher(OnNotification, NULL);
+  Manager::Get()->RemoveWatcher(NotificationFunc, processor);
   Manager::Destroy();
   Options::Destroy();
-  pthread_mutex_destroy(&critical_section_);
 
-  return 0;
+  printf("done\n");
 }
-*/
+
 
 }  // namespace zwave_app

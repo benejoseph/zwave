@@ -5,6 +5,8 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
+#include <queue>
 
 #include "Driver.h"
 #include "Group.h"
@@ -17,13 +19,24 @@
 namespace zwave_app {
 
 class ZWaveProcessor {
-public:
+ public:
   ZWaveProcessor(const std::string& zwave_dongle_dev_path);
+
+  static void MainThreadFunc(ZWaveProcessor* processor);
 
   void OnNotification(OpenZWave::Notification const *notification);
 
+  void Command(char command);
 
-  private:
+ private:
+
+  void DoNextCommand();
+
+  bool IsExit();
+
+  void TurnOnSwitchNode(uint8_t node_id, bool value);
+
+
   struct NodeInfo {
     uint32_t m_homeId;
     uint8_t m_nodeId;
@@ -37,13 +50,16 @@ public:
 
   uint32_t homeId;
   bool initFailed = false;
-
-
   std::list<NodeInfo *> nodes_;
-  pthread_mutex_t critical_section_;
-  pthread_cond_t initCond = PTHREAD_COND_INITIALIZER;
-  pthread_mutex_t initMutex = PTHREAD_MUTEX_INITIALIZER;
-  std::mutex mutex_;
+  std::string zwave_dongle_dev_path_;
+  int port_;
+
+
+  std::mutex command_mutex_;
+  std::condition_variable command_condition_;
+  std::queue<char> command_queue_;
+  bool is_exit_ = false;
+
 };
 
 } // namespace zwave_app
