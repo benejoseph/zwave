@@ -3,17 +3,28 @@ project (ZwaveExampleProject)
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-include_directories("/usr/include/openzwave")
-include_directories(${CMAKE_SOURCE_DIR})
-
 find_package(Threads REQUIRED)
 find_package(OpenZWave)
+find_package(WiringPi REQUIRED)
 
-add_executable(ZWaveExample 
-  main.cc
+include_directories("/usr/include/openzwave")
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${WIRINGPI_INCLUDE_DIRS})
+
+
+add_library(ZWaveProcessor
   zwave_processor.cc
   zwave_processor.h
 )
 
-message(STATUS ${OpenZWave})
-target_link_libraries(ZWaveExample ${OpenZWave_LIBRARIES}  Threads::Threads)
+target_link_libraries(ZWaveProcessor ${OpenZWave_LIBRARIES}  Threads::Threads)
+
+add_executable(PiBoardSwitch
+  pi_board_switch_main.cc
+)
+target_link_libraries(PiBoardSwitch Threads::Threads  ZWaveProcessor)
+
+add_executable(ZWaveExample 
+  zwave_example_main.cc
+)
+target_link_libraries(ZWaveExample Threads::Threads  ZWaveProcessor)

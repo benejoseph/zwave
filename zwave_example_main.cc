@@ -4,6 +4,7 @@
 #include <thread>
 
 int main() {
+  std::cout << "use f and g to turn on and off node 2" << std::endl;
   zwave_app::ZWaveProcessor processor("/dev/ttyACM0");
 
   std::thread processor_thread(zwave_app::ZWaveProcessor::MainThreadFunc, &processor);
