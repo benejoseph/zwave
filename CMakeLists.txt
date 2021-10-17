@@ -21,8 +21,10 @@ target_link_libraries(ZWaveProcessor ${OpenZWave_LIBRARIES}  Threads::Threads)
 
 add_executable(PiBoardSwitch
   pi_board_switch_main.cc
+  pi_board_switch_processor.cc
+  pi_board_switch_processor.h
 )
-target_link_libraries(PiBoardSwitch Threads::Threads  ZWaveProcessor)
+target_link_libraries(PiBoardSwitch Threads::Threads  ZWaveProcessor ${WIRINGPI_LIBRARIES})
 
 add_executable(ZWaveExample 
   zwave_example_main.cc
