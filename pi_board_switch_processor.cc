@@ -1,12 +1,56 @@
 #include "pi_board_switch_processor.h"
 
-#include <wiringPi.h>
+#include <assert.h>
+#include <iostream>
+#include "pigpio/pigpio.h"
+
+// BCM numbers aka "GPIO 22", not the pin number
+constexpr int kSwitchBcm1 = 17;
+constexpr int kSwitchBcm2 = 27;
+constexpr int kSwitchBcm3 = 22;
+constexpr int kSwitchBcm4 = 25;
+
+constexpr int kSampleRateUs = 1000;
+
+namespace  {
+void OnEdge(int gpio, int level, uint32_t tick) {
+  PiBoardSwitchProcessor::GetInstance().OnGpioChange(gpio, level, tick);
+}
+}  // namespace
+
+
+PiBoardSwitchProcessor::PiBoardSwitchProcessor() {
+
+}
+
+PiBoardSwitchProcessor& PiBoardSwitchProcessor::GetInstance() {
+    static PiBoardSwitchProcessor processor;
+    return processor;
+}
+
+
+void PiBoardSwitchProcessor::OnGpioChange(int gpio, int level, uint32_t tick) {
+  std::cout << "gpio:" << gpio << ", level:" << level << ", tick:" << tick << std::endl;
+}
 
 void PiBoardSwitchProcessor::DoSomething() {
-  wiringPiSetup () ;
-  pinMode (0, OUTPUT) ;
-  for (int i = 0; i < 100; ++i) {
-    digitalWrite (0, HIGH) ; delay (500) ;
-    digitalWrite (0,  LOW) ; delay (500) ;
-  }
+
+}
+
+void PiBoardSwitchProcessor::Start() {
+    std::cerr << "Starting..." << std::endl;
+    gpioCfgClock(kSampleRateUs, 1, 1);
+
+
+    if (gpioInitialise() < 0) {
+        std::cerr << "FATAL: gpio failed to initialize." << std::endl;
+        assert(0);
+    }
+
+    gpioWaveClear();
+
+    gpioSetAlertFunc(kSwitchBcm1, OnEdge);
+    gpioSetAlertFunc(kSwitchBcm2, OnEdge);
+    gpioSetAlertFunc(kSwitchBcm3, OnEdge);
+    gpioSetAlertFunc(kSwitchBcm4, OnEdge);
 }
