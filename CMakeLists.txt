@@ -12,7 +12,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 add_subdirectory( pigpio)
 
-add_library(ZWaveProcessor
+add_library(ZWaveProcessor STATIC
   zwave_processor.cc
   zwave_processor.h
 )

@@ -12,5 +12,5 @@ option(BUILD_SHARED_LIBS "Create shared libraries" ON)
 add_compile_options(-Wall)
 
 # libpigpio.(so|a)
-add_library(pigpio pigpio.c command.c custom.cext)
+add_library(pigpio STATIC pigpio.c command.c custom.cext)
 

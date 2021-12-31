@@ -10,9 +10,36 @@ constexpr int kSwitchBcm2 = 27;
 constexpr int kSwitchBcm3 = 22;
 constexpr int kSwitchBcm4 = 25;
 
+constexpr int kNumGpios = 4;
+
 constexpr int kSampleRateUs = 1000;
+constexpr int kGlitchPeriodUs = 5000;
+
+
 
 namespace  {
+struct GpioConfig {
+  int gpio;
+  int sample_period_us;
+  int glitch_period_us;
+};
+
+constexpr GpioConfig kGpioConfig[kNumGpios] = {
+    {.gpio = kSwitchBcm1,
+     .sample_period_us = kSampleRateUs,
+     .glitch_period_us = kGlitchPeriodUs},
+    {.gpio = kSwitchBcm2,
+     .sample_period_us = kSampleRateUs,
+     .glitch_period_us = kGlitchPeriodUs},
+    {.gpio = kSwitchBcm3,
+     .sample_period_us = kSampleRateUs,
+     .glitch_period_us = kGlitchPeriodUs},
+    {.gpio = kSwitchBcm4,
+     .sample_period_us = kSampleRateUs,
+     .glitch_period_us = kGlitchPeriodUs},
+};
+
+
 void OnEdge(int gpio, int level, uint32_t tick) {
   PiBoardSwitchProcessor::GetInstance().OnGpioChange(gpio, level, tick);
 }
@@ -47,10 +74,10 @@ void PiBoardSwitchProcessor::Start() {
         assert(0);
     }
 
-    gpioWaveClear();
-
-    gpioSetAlertFunc(kSwitchBcm1, OnEdge);
-    gpioSetAlertFunc(kSwitchBcm2, OnEdge);
-    gpioSetAlertFunc(kSwitchBcm3, OnEdge);
-    gpioSetAlertFunc(kSwitchBcm4, OnEdge);
+    for (int i = 0; i < kNumGpios; ++i) {
+        const GpioConfig& config = kGpioConfig[i];
+      gpioSetMode(config.gpio, PI_INPUT);
+      gpioGlitchFilter(config.gpio,config.glitch_period_us);
+      gpioSetAlertFunc(config.gpio, OnEdge);
+    }
 }
