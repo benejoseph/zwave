@@ -23,10 +23,12 @@ add_executable(PiBoardSwitch
   pi_board_switch_main.cc
   pi_board_switch_processor.cc
   pi_board_switch_processor.h
+  pi_board_switch_controller.cc
+  pi_board_switch_controller.h
 )
-target_link_libraries(PiBoardSwitch Threads::Threads  ZWaveProcessor ${WIRINGPI_LIBRARIES} pigpio)
+target_link_libraries(PiBoardSwitch Threads::Threads  ZWaveProcessor pigpio)
 
-add_executable(ZWaveExample 
-  zwave_example_main.cc
-)
-target_link_libraries(ZWaveExample Threads::Threads  ZWaveProcessor)
+#add_executable(ZWaveExample
+#  zwave_example_main.cc
+#)
+#target_link_libraries(ZWaveExample Threads::Threads  ZWaveProcessor)

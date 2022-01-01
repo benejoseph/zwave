@@ -9,8 +9,10 @@ constexpr int kSwitchBcm1 = 17;
 constexpr int kSwitchBcm2 = 27;
 constexpr int kSwitchBcm3 = 22;
 constexpr int kSwitchBcm4 = 25;
+constexpr int kPushButtonSwitchBcm = 12;
+//constexpr int kStatusLedBcm =
 
-constexpr int kNumGpios = 4;
+constexpr int kNumInputGpios = 5;
 
 constexpr int kSampleRateUs = 1000;
 constexpr int kGlitchPeriodUs = 5000;
@@ -18,31 +20,38 @@ constexpr int kGlitchPeriodUs = 5000;
 
 
 namespace  {
+
 struct GpioConfig {
+  SwitchId switch_id;
   int gpio;
   int sample_period_us;
   int glitch_period_us;
 };
 
-constexpr GpioConfig kGpioConfig[kNumGpios] = {
-    {.gpio = kSwitchBcm1,
+constexpr GpioConfig kGpioInputConfigs[kNumInputGpios] = {
+    {.switch_id = kLightSwitch1,
+     .gpio = kSwitchBcm1,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.gpio = kSwitchBcm2,
+    {.switch_id = kLightSwitch2,
+     .gpio = kSwitchBcm2,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.gpio = kSwitchBcm3,
+    {.switch_id = kLightSwitch3,
+     .gpio = kSwitchBcm3,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.gpio = kSwitchBcm4,
+    {.switch_id = kLightSwitch4,
+     .gpio = kSwitchBcm4,
+     .sample_period_us = kSampleRateUs,
+     .glitch_period_us = kGlitchPeriodUs},
+    {.switch_id = kPushButton,
+     .gpio = kPushButtonSwitchBcm,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
 };
 
 
-void OnEdge(int gpio, int level, uint32_t tick) {
-  PiBoardSwitchProcessor::GetInstance().OnGpioChange(gpio, level, tick);
-}
 }  // namespace
 
 
@@ -55,13 +64,24 @@ PiBoardSwitchProcessor& PiBoardSwitchProcessor::GetInstance() {
     return processor;
 }
 
-
-void PiBoardSwitchProcessor::OnGpioChange(int gpio, int level, uint32_t tick) {
-  std::cout << "gpio:" << gpio << ", level:" << level << ", tick:" << tick << std::endl;
+// static
+void PiBoardSwitchProcessor::OnGpioChangeCallback(int gpio, int level, uint32_t tick_us) {
+  std::cout << "gpio:" << gpio << ", level:" << level << ", tick_us:" << tick_us << std::endl;
+  PiBoardSwitchProcessor::GetInstance().OnGpioChange(gpio, level, tick_us);
 }
 
-void PiBoardSwitchProcessor::DoSomething() {
+void PiBoardSwitchProcessor::OnGpioChange(int gpio, int level, uint32_t tick_us) {
+  // Stupid linear search.
+  for (int i = 0; i < kNumInputGpios; ++i) {
+    if (kGpioInputConfigs[i].gpio == gpio && on_switch_change_) {
+      on_switch_change_(kGpioInputConfigs[i].switch_id, level, tick_us);
+    }
+  }
+}
 
+void PiBoardSwitchProcessor::SetBlinkStatusLed(int num_blinks, int duration_ms) {
+    // TODO implement this
+    // make output gpio be writable
 }
 
 void PiBoardSwitchProcessor::Start() {
@@ -74,10 +94,10 @@ void PiBoardSwitchProcessor::Start() {
         assert(0);
     }
 
-    for (int i = 0; i < kNumGpios; ++i) {
-        const GpioConfig& config = kGpioConfig[i];
+    for (int i = 0; i < kNumInputGpios; ++i) {
+        const GpioConfig& config = kGpioInputConfigs[i];
       gpioSetMode(config.gpio, PI_INPUT);
       gpioGlitchFilter(config.gpio,config.glitch_period_us);
-      gpioSetAlertFunc(config.gpio, OnEdge);
+      gpioSetAlertFunc(config.gpio, &PiBoardSwitchProcessor::OnGpioChangeCallback);
     }
 }

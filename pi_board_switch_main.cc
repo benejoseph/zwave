@@ -1,17 +1,21 @@
 #include "zwave_processor.h"
 #include "pi_board_switch_processor.h"
+#include "pi_board_switch_controller.h"
 
 int main() {
-  zwave_app::ZWaveProcessor processor("/dev/ttyACM0");
+  zwave_app::ZWaveProcessor zwave_processor("/dev/ttyACM0");
 
   PiBoardSwitchProcessor::GetInstance().Start();
 
-  std::thread processor_thread(zwave_app::ZWaveProcessor::MainThreadFunc, &processor);
+  PiBoardSwitchController controller(zwave_processor);
+
+  std::thread zwave_processor_thread(zwave_app::ZWaveProcessor::MainThreadFunc, &zwave_processor);
+
 
     while (true) {
       std::string buf;
       std::cin >> buf;
-      processor.Command(buf[0]);
+      zwave_processor.Command(buf[0]);
 
       if (buf[0] == 'q') {
         break;
@@ -19,7 +23,7 @@ int main() {
 
     }
 
-  processor_thread.join();
+  zwave_processor_thread.join();
 
   return 0;
 }
