@@ -24,9 +24,12 @@ class PiBoardSwitchController {
 
   zwave_app::ZWaveProcessor& zwave_processor_;
 
-  uint32_t push_ticks_us_[kNumPushesToPair] = {0,0,0};
-  uint32_t push_idx_ = 0;
-  uint32_t push_tick_counts_;
+  uint32_t on_push_ticks_us_[kNumPushesToPair] = {0,0,0};
+  uint32_t on_push_idx_ = 0;
+  uint32_t on_push_tick_counts_ = 0;
+  bool is_waiting_for_pairing_long_press_ = false;
+
+
 };
 
 #endif // _PI_BOARD_SWITCH_CONTROLLER_H_

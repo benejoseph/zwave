@@ -1,7 +1,10 @@
 #include "pi_board_switch_processor.h"
 
 #include <assert.h>
+#include <chrono>
 #include <iostream>
+#include <thread>
+
 #include "pigpio/pigpio.h"
 
 // BCM numbers aka "GPIO 22", not the pin number
@@ -10,7 +13,7 @@ constexpr int kSwitchBcm2 = 18;
 constexpr int kSwitchBcm3 = 22;
 constexpr int kSwitchBcm4 = 17;
 constexpr int kPushButtonSwitchBcm = 16;
-//constexpr int kStatusLedBcm =
+constexpr int kStatusLedPwmBcm = 13;
 
 constexpr int kNumInputGpios = 5;
 
@@ -51,12 +54,29 @@ constexpr GpioConfig kGpioInputConfigs[kNumInputGpios] = {
      .glitch_period_us = kPushButtonGlitchPeriodUs},
 };
 
+constexpr int kNumPairBlinkPulse = 20;
+static_assert((kNumPairBlinkPulse % 2) == 0, "kNumPairBlinkPulse must be even.");
+gpioPulse_t kPairBlinkPulse[kNumPairBlinkPulse] = {};
 
 }  // namespace
 
 
 PiBoardSwitchProcessor::PiBoardSwitchProcessor() {
+  for (int i = 0; i < kNumPairBlinkPulse; ++i) {
+    if (i % 2 == 0) {
+      kPairBlinkPulse[i].gpioOn = 1 << kStatusLedPwmBcm;
+      kPairBlinkPulse[i].gpioOff = 0;
+      kPairBlinkPulse[i].usDelay = 100000; // 0.1 seconds
+    } else {
+      kPairBlinkPulse[i].gpioOn = 0;
+      kPairBlinkPulse[i].gpioOff = 1 << kStatusLedPwmBcm;
+      kPairBlinkPulse[i].usDelay = 100000; // 0.1 seconds
+    }
+  }
 
+  gpioWaveAddNew();
+  gpioWaveAddGeneric(kNumPairBlinkPulse, &kPairBlinkPulse[0]);
+  blink_wave_id_ = gpioWaveCreate();
 }
 
 PiBoardSwitchProcessor& PiBoardSwitchProcessor::GetInstance() {
@@ -79,9 +99,13 @@ void PiBoardSwitchProcessor::OnGpioChange(int gpio, int level, uint32_t tick_us)
   }
 }
 
-void PiBoardSwitchProcessor::SetBlinkStatusLed(int num_blinks, int duration_ms) {
-    // TODO implement this
-    // make output gpio be writable
+void PiBoardSwitchProcessor::SetBlinkStatusLed() {
+    // This is hopefully somewhat async.
+    if (blink_wave_id_ < 0) {
+      return;
+    }
+
+    gpioWaveTxSend(blink_wave_id_, PI_WAVE_MODE_ONE_SHOT);
 }
 
 void PiBoardSwitchProcessor::Start() {
@@ -100,4 +124,8 @@ void PiBoardSwitchProcessor::Start() {
       gpioGlitchFilter(config.gpio,config.glitch_period_us);
       gpioSetAlertFunc(config.gpio, &PiBoardSwitchProcessor::OnGpioChangeCallback);
     }
+
+    gpioSetMode(kStatusLedPwmBcm, PI_OUTPUT);
+    gpioWrite(kStatusLedPwmBcm, 0);
+
 }

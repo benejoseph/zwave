@@ -4,11 +4,16 @@
 #include <limits>
 
 namespace {
-constexpr uint32_t kPairTickPeriodUs = 3000000;
-constexpr uint32_t kResetTickPeriodUs = 10000000;
+constexpr uint32_t FromSeconds(uint32_t seconds) {
+  return seconds * 1000000;
+}
+
+constexpr uint32_t kPairMultiPressPeriodUs = FromSeconds(3);
+constexpr uint32_t kPairPressHoldPeriodUs = FromSeconds(10);
+constexpr uint32_t kResetPressHoldPeriodUs = FromSeconds(20);
+
 constexpr int kLevelPushed = 0;
 constexpr int kLevelUnpushed = 1;
-
 
 // Perform a - b (a minus b)
 uint32_t SubtractTicks(uint32_t a, uint32_t b) {
@@ -21,7 +26,7 @@ uint32_t SubtractTicks(uint32_t a, uint32_t b) {
 
   return a - b;
 }
-}
+}  // namespace
 
 PiBoardSwitchController::PiBoardSwitchController(zwave_app::ZWaveProcessor& zwave_processor)
  : zwave_processor_(zwave_processor) {
@@ -29,13 +34,6 @@ PiBoardSwitchController::PiBoardSwitchController(zwave_app::ZWaveProcessor& zwav
     PiBoardSwitchProcessor::GetInstance().SetOnSwitchChange([&](SwitchId switch_id, int level, uint32_t tick_us) {
         OnSwitch(switch_id, level, tick_us);
     });
-
-    zwave_processor.SetOnAddNodeCallback([&]() {
-      for (auto node_id : zwave_processor.GetNodeSwitchIds()) {
-        PiBoardSwitchProcessor::GetInstance().SetBlinkStatusLed(1);
-      }
-    });
-
 }
 
 
@@ -72,30 +70,39 @@ void PiBoardSwitchController::OnSwitch(SwitchId switch_id, int level, uint32_t t
 }
 
 void PiBoardSwitchController::OnPushButton(int level, uint32_t tick_us) {
- // Look for kNumPushesToPair presses within kPairTickPeriodUs.
+ // Look for kNumPushesToPair presses within kPairMultiPressPeriodUs with the last press
+ // being in duration of of kPairPressHoldPeriod.
+ // i.e.  press, press, press and hold......... unpress.
  if (level == kLevelPushed) {
+   is_waiting_for_pairing_long_press_ = false;
+
    current_push_.start_tick = tick_us;
    current_push_.end_tick = tick_us;
 
-   push_ticks_us_[push_idx_] = tick_us;
-   push_idx_ = (push_idx_ + 1) % kNumPushesToPair;
-   if (++push_tick_counts_ >= kNumPushesToPair) {
-     push_tick_counts_ = kNumPushesToPair;
-     // Latest minus oldest
-     const uint32_t n_click_duration_us = SubtractTicks(tick_us, push_ticks_us_[push_idx_]);
-     std::cerr << "duration (ms): " << n_click_duration_us / 1000 << std::endl;
-     if (n_click_duration_us < kPairTickPeriodUs) {
-       zwave_processor_.StartInclusion();
-       PiBoardSwitchProcessor::GetInstance().SetBlinkStatusLed(kNumPushesToPair);
+   // Circular buffer of size kNumPushesToPair
+   on_push_ticks_us_[on_push_idx_] = tick_us;
+   on_push_idx_ = (on_push_idx_ + 1) % kNumPushesToPair;
+   if (++on_push_tick_counts_ >= kNumPushesToPair) {
+     on_push_tick_counts_ = kNumPushesToPair;
+     // Latest tick in the circular buffer minus first tick in the circular buffer.
+     const uint32_t n_click_duration_us = SubtractTicks(tick_us, on_push_ticks_us_[on_push_idx_]);
+
+     if (n_click_duration_us < kPairMultiPressPeriodUs) {
+       is_waiting_for_pairing_long_press_ = true;
      }
    }
  }
 
  if (level == kLevelUnpushed && current_push_.start_tick > 0) {
     current_push_.end_tick = tick_us;
+    const uint32_t press_duration_us = SubtractTicks(current_push_.end_tick, current_push_.start_tick);
 
-    if (SubtractTicks(current_push_.end_tick, current_push_.start_tick) > kResetTickPeriodUs) {
+    if (is_waiting_for_pairing_long_press_ && press_duration_us > kPairPressHoldPeriodUs) {
+      zwave_processor_.StartInclusion();
+      PiBoardSwitchProcessor::GetInstance().SetBlinkStatusLed();
+    } else if (press_duration_us > kResetPressHoldPeriodUs) {
       zwave_processor_.ResetNetwork();
+      PiBoardSwitchProcessor::GetInstance().SetBlinkStatusLed();
     }
  }
 }

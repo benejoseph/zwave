@@ -32,7 +32,8 @@ class PiBoardSwitchProcessor {
     on_switch_change_ = on_switch_change;
   }
 
-  void SetBlinkStatusLed(int num_blinks, int duration_ms = 200);
+  // Should blink the status LED for a couple of seconds.
+  void SetBlinkStatusLed();
 
  private:
   // Callback target for when a GPIO changes level.
@@ -42,6 +43,7 @@ class PiBoardSwitchProcessor {
   // Callback for switch changes.
   std::function<void(SwitchId switch_id, int level, uint32_t tick_us)> on_switch_change_;
 
+  int blink_wave_id_ = -1;
 };
 
 #endif //_PIBOARD_SWITCH_PROCESSOR_H_
