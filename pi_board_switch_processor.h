@@ -19,6 +19,7 @@ enum class SwitchId : uint8_t {
 class PiBoardSwitchProcessor {
 private:
   PiBoardSwitchProcessor();
+  ~PiBoardSwitchProcessor();
 
 public:
   // Singleton accessor. There can be only one!

@@ -61,6 +61,8 @@ gpioPulse_t kPairBlinkPulse[kNumPairBlinkPulse] = {};
 } // namespace
 
 PiBoardSwitchProcessor::PiBoardSwitchProcessor() {
+  // kPairBlinkPulse can't be const because of pigpio's API,
+  // so it's initialized here.
   for (int i = 0; i < kNumPairBlinkPulse; ++i) {
     if (i % 2 == 0) {
       kPairBlinkPulse[i].gpioOn = 1 << kStatusLedPwmBcm;
@@ -76,6 +78,12 @@ PiBoardSwitchProcessor::PiBoardSwitchProcessor() {
   gpioWaveAddNew();
   gpioWaveAddGeneric(kNumPairBlinkPulse, &kPairBlinkPulse[0]);
   blink_wave_id_ = gpioWaveCreate();
+}
+
+PiBoardSwitchProcessor::~PiBoardSwitchProcessor() {
+  if (blink_wave_id_ >= 0) {
+    gpioWaveDelete(blink_wave_id_);
+  }
 }
 
 PiBoardSwitchProcessor &PiBoardSwitchProcessor::GetInstance() {
