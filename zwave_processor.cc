@@ -7,19 +7,19 @@
 #include <iostream>
 #include <set>
 
-
 using namespace OpenZWave;
 
 namespace zwave_app {
 namespace {
 constexpr uint8_t kPowerSwitchCommandClass = 0x25;
 
-}  // namespace
+} // namespace
 
 ZWaveProcessor::ZWaveProcessor(const std::string &zwave_dongle_dev_path)
     : zwave_dongle_dev_path_(zwave_dongle_dev_path) {}
 
-void ZWaveProcessor::NotificationFunc(Notification const *notification, void *context) {
+void ZWaveProcessor::NotificationFunc(Notification const *notification,
+                                      void *context) {
   if (context == nullptr) {
     return;
   }
@@ -37,144 +37,144 @@ void ZWaveProcessor::OnNotification(
   const auto notification_type = notification->GetType();
 
   switch (notification_type) {
-    case Notification::Type_ValueAdded: {
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        // Add the new value to our list
-        node_info->values.push_back(notification->GetValueID());
-      }
-      break;
+  case Notification::Type_ValueAdded: {
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      // Add the new value to our list
+      node_info->values.push_back(notification->GetValueID());
     }
+    break;
+  }
 
-    case Notification::Type_ValueRemoved: {
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        // Remove the value from out list
-        for (list<ValueID>::iterator it = node_info->values.begin();
-             it != node_info->values.end(); ++it) {
-          if ((*it) == notification->GetValueID()) {
-            node_info->values.erase(it);
-            break;
-          }
-        }
-      }
-      break;
-    }
-
-    case Notification::Type_ValueChanged: {
-      // One of the node values has changed
-      /*
-    NodeInfo *node_info = GetNodeInfo(notification);
-    if (node_info->node_id == sensorNodeID) {
-      bool *status;
-      ValueID v = GetValueID(node_info, 0x30);
-      bool val_get = Manager::Get()->GetValueAsBool(v, status);
-      if (*status) {
-        printf("\n Sensor is now: ACTIVE");
-        SetPowerSwitch(GetValueID(GetNodeInfo(powerSwitchNodeID), 0x25),
-                       true);
-      } else {
-        printf("\n Sensor is now: INACTIVE");
-        SetPowerSwitch(GetValueID(GetNodeInfo(powerSwitchNodeID), 0x25),
-                       false);
-      }
-    }
-    */
-      break;
-    }
-
-    case Notification::Type_Group: {
-      // One of the node's association groups has changed
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        node_info = node_info;  // placeholder for real action
-      }
-      break;
-    }
-
-    case Notification::Type_NodeAdded: {
-      // Update state.
-      NodeInfo *node_info = new NodeInfo();
-      node_info->home_id = notification->GetHomeId();
-      node_info->node_id = notification->GetNodeId();
-      node_info->polled = false;
-      nodes_.push_back(node_info);
-
-      // Let subscribers know that there's a new kid on the block.
-      if (on_add_node_callback_) {
-        on_add_node_callback_();
-      }
-
-      break;
-    }
-
-    case Notification::Type_NodeRemoved: {
-      // Remove the node from our list
-      uint32 const home_id = notification->GetHomeId();
-      uint8 const nodeId = notification->GetNodeId();
-      for (list<NodeInfo *>::iterator it = nodes_.begin(); it != nodes_.end();
-           ++it) {
-        NodeInfo *node_info = *it;
-        if ((node_info->home_id == home_id_) && (node_info->node_id == nodeId)) {
-          nodes_.erase(it);
-          delete node_info;
+  case Notification::Type_ValueRemoved: {
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      // Remove the value from out list
+      for (list<ValueID>::iterator it = node_info->values.begin();
+           it != node_info->values.end(); ++it) {
+        if ((*it) == notification->GetValueID()) {
+          node_info->values.erase(it);
           break;
         }
       }
-      break;
+    }
+    break;
+  }
+
+  case Notification::Type_ValueChanged: {
+    // One of the node values has changed
+    /*
+  NodeInfo *node_info = GetNodeInfo(notification);
+  if (node_info->node_id == sensorNodeID) {
+    bool *status;
+    ValueID v = GetValueID(node_info, 0x30);
+    bool val_get = Manager::Get()->GetValueAsBool(v, status);
+    if (*status) {
+      printf("\n Sensor is now: ACTIVE");
+      SetPowerSwitch(GetValueID(GetNodeInfo(powerSwitchNodeID), 0x25),
+                     true);
+    } else {
+      printf("\n Sensor is now: INACTIVE");
+      SetPowerSwitch(GetValueID(GetNodeInfo(powerSwitchNodeID), 0x25),
+                     false);
+    }
+  }
+  */
+    break;
+  }
+
+  case Notification::Type_Group: {
+    // One of the node's association groups has changed
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      node_info = node_info; // placeholder for real action
+    }
+    break;
+  }
+
+  case Notification::Type_NodeAdded: {
+    // Update state.
+    NodeInfo *node_info = new NodeInfo();
+    node_info->home_id = notification->GetHomeId();
+    node_info->node_id = notification->GetNodeId();
+    node_info->polled = false;
+    nodes_.push_back(node_info);
+
+    // Let subscribers know that there's a new kid on the block.
+    if (on_add_node_callback_) {
+      on_add_node_callback_();
     }
 
-    case Notification::Type_NodeEvent: {
-      // We have received an event from the node, caused by a
-      // basic_set or hail message.
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        node_info = node_info;
+    break;
+  }
+
+  case Notification::Type_NodeRemoved: {
+    // Remove the node from our list
+    uint32 const home_id = notification->GetHomeId();
+    uint8 const nodeId = notification->GetNodeId();
+    for (list<NodeInfo *>::iterator it = nodes_.begin(); it != nodes_.end();
+         ++it) {
+      NodeInfo *node_info = *it;
+      if ((node_info->home_id == home_id_) && (node_info->node_id == nodeId)) {
+        nodes_.erase(it);
+        delete node_info;
+        break;
       }
-      break;
     }
+    break;
+  }
 
-    case Notification::Type_PollingDisabled: {
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        node_info->polled = false;
-      }
-      break;
+  case Notification::Type_NodeEvent: {
+    // We have received an event from the node, caused by a
+    // basic_set or hail message.
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      node_info = node_info;
     }
+    break;
+  }
 
-    case Notification::Type_PollingEnabled: {
-      if (NodeInfo *node_info = GetNodeInfo(notification)) {
-        node_info->polled = true;
-      }
-      break;
+  case Notification::Type_PollingDisabled: {
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      node_info->polled = false;
     }
+    break;
+  }
 
-    case Notification::Type_DriverReady: {
-      home_id_ = notification->GetHomeId();
-      break;
+  case Notification::Type_PollingEnabled: {
+    if (NodeInfo *node_info = GetNodeInfo(notification)) {
+      node_info->polled = true;
     }
+    break;
+  }
 
-    case Notification::Type_DriverFailed: {
-      init_failed_ = true;
-      //  pthread_cond_broadcast(&initCond);
-      break;
-    }
+  case Notification::Type_DriverReady: {
+    home_id_ = notification->GetHomeId();
+    break;
+  }
 
-    case Notification::Type_AwakeNodesQueried:
-    case Notification::Type_AllNodesQueried:
-    case Notification::Type_AllNodesQueriedSomeDead: {
-      // pthread_cond_broadcast(&initCond);
-      break;
-    }
+  case Notification::Type_DriverFailed: {
+    init_failed_ = true;
+    //  pthread_cond_broadcast(&initCond);
+    break;
+  }
 
-    case Notification::Type_ControllerCommand: {
-      OpenZWave::Log::Write(LogLevel_Info, "ControllerCommand");
-    }
+  case Notification::Type_AwakeNodesQueried:
+  case Notification::Type_AllNodesQueried:
+  case Notification::Type_AllNodesQueriedSomeDead: {
+    // pthread_cond_broadcast(&initCond);
+    break;
+  }
 
-    case Notification::Type_DriverReset:
-    case Notification::Type_Notification:
-    case Notification::Type_NodeNaming:
-    case Notification::Type_NodeProtocolInfo:
-    case Notification::Type_NodeQueriesComplete:
-    default: {
-      OpenZWave::Log::Write(LogLevel_Info, "Unknown notifcation: %d",
-                            static_cast<int>(notification_type));
-    }
+  case Notification::Type_ControllerCommand: {
+    OpenZWave::Log::Write(LogLevel_Info, "ControllerCommand");
+  }
+
+  case Notification::Type_DriverReset:
+  case Notification::Type_Notification:
+  case Notification::Type_NodeNaming:
+  case Notification::Type_NodeProtocolInfo:
+  case Notification::Type_NodeQueriesComplete:
+  default: {
+    OpenZWave::Log::Write(LogLevel_Info, "Unknown notifcation: %d",
+                          static_cast<int>(notification_type));
+  }
   }
 }
 
@@ -193,28 +193,28 @@ void ZWaveProcessor::TurnOnSwitchNode(uint8_t node_id, bool value) {
 }
 
 void ZWaveProcessor::QueryHomeIds() {
-    // Remove from all networks.
-    std::set<uint32_t> home_ids;
-    for (auto it = nodes_.begin(); it != nodes_.end(); ++it) {
-      NodeInfo *node_info = *it;
-      OpenZWave::Log::Write(LogLevel_Info, "Node homeid: %u,  nodeid: %u", node_info->home_id, node_info->node_id);
-      home_ids.insert(node_info->home_id);
-    }
+  // Remove from all networks.
+  std::set<uint32_t> home_ids;
+  for (auto it = nodes_.begin(); it != nodes_.end(); ++it) {
+    NodeInfo *node_info = *it;
+    OpenZWave::Log::Write(LogLevel_Info, "Node homeid: %u,  nodeid: %u",
+                          node_info->home_id, node_info->node_id);
+    home_ids.insert(node_info->home_id);
+  }
 
-    OpenZWave::Log::Write(LogLevel_Info, "Found %d home ids", home_ids.size());
+  OpenZWave::Log::Write(LogLevel_Info, "Found %d home ids", home_ids.size());
 }
 
 void ZWaveProcessor::ResetNetwork() {
   Manager::Get()->ResetController(home_id_);
 }
 
-
 //-----------------------------------------------------------------------------
 // <GetNodeInfo>
 // Return the NodeInfo object associated with this notification
 //-----------------------------------------------------------------------------
-ZWaveProcessor::NodeInfo *ZWaveProcessor::GetNodeInfo(
-    Notification const *notification) const {
+ZWaveProcessor::NodeInfo *
+ZWaveProcessor::GetNodeInfo(Notification const *notification) const {
   uint32 const home_id = notification->GetHomeId();
   uint8 const nodeId = notification->GetNodeId();
   for (auto it = nodes_.begin(); it != nodes_.end(); ++it) {
@@ -266,20 +266,20 @@ void ZWaveProcessor::DoNextCommand() {
   }
 
   switch (command_queue_.front()) {
-    case 'q': {
-      is_exit_ = true;
-      break;
-    }
+  case 'q': {
+    is_exit_ = true;
+    break;
+  }
 
-    case '2': {
-      TurnOnSwitchNode(2, true);
-      break;
-    }
+  case '2': {
+    TurnOnSwitchNode(2, true);
+    break;
+  }
 
-    case '@': {
-      TurnOnSwitchNode(2, false);
-      break;
-    }
+  case '@': {
+    TurnOnSwitchNode(2, false);
+    break;
+  }
 
   case '3': {
     TurnOnSwitchNode(3, true);
@@ -311,24 +311,24 @@ void ZWaveProcessor::DoNextCommand() {
     break;
   }
 
-    case 'r': {
-      ResetNetwork();
-      break;
-    }
+  case 'r': {
+    ResetNetwork();
+    break;
+  }
 
-    case 'h': {
-      QueryHomeIds();
-      break;
-    }
+  case 'h': {
+    QueryHomeIds();
+    break;
+  }
 
   case 'a': {
     StartInclusion();
   }
 
-    default: {
-      printf("unkown command %c\n", command_queue_.front());
-      break;
-    }
+  default: {
+    printf("unkown command %c\n", command_queue_.front());
+    break;
+  }
   }
 
   command_queue_.pop();
@@ -336,26 +336,23 @@ void ZWaveProcessor::DoNextCommand() {
 
 bool ZWaveProcessor::IsExit() { return is_exit_; }
 
-
 std::set<uint8_t> ZWaveProcessor::GetNodeSwitchIds() const {
-    // Remove from all networks.
-    std::set<uint8_t> node_ids;
-    for (auto it = nodes_.begin(); it != nodes_.end(); ++it) {
-      NodeInfo *node_info = *it;
+  // Remove from all networks.
+  std::set<uint8_t> node_ids;
+  for (auto it = nodes_.begin(); it != nodes_.end(); ++it) {
+    NodeInfo *node_info = *it;
 
-      for (auto v : node_info->values) {
-        if (v.GetCommandClassId() == kPowerSwitchCommandClass) {
-            node_ids.insert(node_info->node_id);
-        }
+    for (auto v : node_info->values) {
+      if (v.GetCommandClassId() == kPowerSwitchCommandClass) {
+        node_ids.insert(node_info->node_id);
       }
     }
+  }
 
-    return node_ids;
+  return node_ids;
 }
 
-void ZWaveProcessor::StartInclusion() {
-    Manager::Get()->AddNode(home_id_);
-}
+void ZWaveProcessor::StartInclusion() { Manager::Get()->AddNode(home_id_); }
 
 void ZWaveProcessor::MainThreadFunc(ZWaveProcessor *processor) {
   std::unique_lock<std::mutex> lock(processor->command_mutex_);
@@ -414,4 +411,4 @@ void ZWaveProcessor::MainThreadFunc(ZWaveProcessor *processor) {
   printf("done\n");
 }
 
-}  // namespace zwave_app
+} // namespace zwave_app

@@ -3,12 +3,12 @@
 
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <list>
 #include <mutex>
 #include <queue>
-#include <thread>
 #include <set>
-#include <functional>
+#include <thread>
 
 #include "Driver.h"
 #include "Group.h"
@@ -21,12 +21,12 @@
 namespace zwave_app {
 
 class ZWaveProcessor {
- public:
+public:
   // Provide path to zwave dongle, i.e. "/dev/ttyACM0"
   ZWaveProcessor(const std::string &zwave_dongle_dev_path);
 
-  // Main thread loop.  From main, create a ZWaveProcessor and call this method in a new thread.
-  // It will run forever, or until the user quits.
+  // Main thread loop.  From main, create a ZWaveProcessor and call this method
+  // in a new thread. It will run forever, or until the user quits.
   static void MainThreadFunc(ZWaveProcessor *processor);
 
   // Give the processor a single character command from the keyboard.
@@ -50,8 +50,7 @@ class ZWaveProcessor {
     on_add_node_callback_ = on_add_node_callback;
   }
 
- private:
-
+private:
   struct NodeInfo {
     uint32_t home_id;
     uint8_t node_id;
@@ -59,9 +58,9 @@ class ZWaveProcessor {
     std::list<OpenZWave::ValueID> values;
   };
 
-
   // Callback from the zwave library.
-  static void NotificationFunc(OpenZWave::Notification const *notification, void *context);
+  static void NotificationFunc(OpenZWave::Notification const *notification,
+                               void *context);
   void OnNotification(OpenZWave::Notification const *notification);
 
   // Proccess the next command.
@@ -72,8 +71,6 @@ class ZWaveProcessor {
 
   // Prints out list of home ids and nodes.
   void QueryHomeIds();
-
-
 
   NodeInfo *GetNodeInfo(OpenZWave::Notification const *notification) const;
   NodeInfo *GetNodeInfo(int nodeId) const;
@@ -92,6 +89,6 @@ class ZWaveProcessor {
   bool is_exit_ = false;
 };
 
-}  // namespace zwave_app
+} // namespace zwave_app
 
-#endif  // ZWAVE_PROCESSOR_H_
+#endif // ZWAVE_PROCESSOR_H_
