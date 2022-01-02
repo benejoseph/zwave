@@ -291,6 +291,26 @@ void ZWaveProcessor::DoNextCommand() {
     break;
   }
 
+  case '4': {
+    TurnOnSwitchNode(3, true);
+    break;
+  }
+
+  case '$': {
+    TurnOnSwitchNode(3, false);
+    break;
+  }
+
+  case '5': {
+    TurnOnSwitchNode(3, true);
+    break;
+  }
+
+  case '%': {
+    TurnOnSwitchNode(3, false);
+    break;
+  }
+
     case 'r': {
       ResetNetwork();
       break;
@@ -300,6 +320,10 @@ void ZWaveProcessor::DoNextCommand() {
       QueryHomeIds();
       break;
     }
+
+  case 'a': {
+    StartInclusion();
+  }
 
     default: {
       printf("unkown command %c\n", command_queue_.front());
