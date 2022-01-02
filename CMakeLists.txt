@@ -5,7 +5,6 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 find_package(Threads REQUIRED)
 find_package(OpenZWave)
-#find_package(pigpio REQUIRED)
 
 include_directories("/usr/include/openzwave")
 include_directories(${CMAKE_SOURCE_DIR})

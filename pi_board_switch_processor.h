@@ -5,7 +5,7 @@
 #include <functional>
 
 // Values for light switches are the hard-coded node values.
-enum SwitchId {
+enum class SwitchId : uint8_t {
   kUnknown = 0,
   kLightSwitch1 = 2,
   kLightSwitch2 = 3,

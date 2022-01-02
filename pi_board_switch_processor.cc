@@ -5,18 +5,18 @@
 #include "pigpio/pigpio.h"
 
 // BCM numbers aka "GPIO 22", not the pin number
-constexpr int kSwitchBcm1 = 17;
-constexpr int kSwitchBcm2 = 27;
+constexpr int kSwitchBcm1 = 27;
+constexpr int kSwitchBcm2 = 18;
 constexpr int kSwitchBcm3 = 22;
-constexpr int kSwitchBcm4 = 25;
-constexpr int kPushButtonSwitchBcm = 12;
+constexpr int kSwitchBcm4 = 17;
+constexpr int kPushButtonSwitchBcm = 16;
 //constexpr int kStatusLedBcm =
 
 constexpr int kNumInputGpios = 5;
 
 constexpr int kSampleRateUs = 1000;
 constexpr int kGlitchPeriodUs = 5000;
-
+constexpr int kPushButtonGlitchPeriodUs = 20000;
 
 
 namespace  {
@@ -29,26 +29,26 @@ struct GpioConfig {
 };
 
 constexpr GpioConfig kGpioInputConfigs[kNumInputGpios] = {
-    {.switch_id = kLightSwitch1,
+    {.switch_id = SwitchId::kLightSwitch1,
      .gpio = kSwitchBcm1,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.switch_id = kLightSwitch2,
+    {.switch_id = SwitchId::kLightSwitch2,
      .gpio = kSwitchBcm2,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.switch_id = kLightSwitch3,
+    {.switch_id = SwitchId::kLightSwitch3,
      .gpio = kSwitchBcm3,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.switch_id = kLightSwitch4,
+    {.switch_id = SwitchId::kLightSwitch4,
      .gpio = kSwitchBcm4,
      .sample_period_us = kSampleRateUs,
      .glitch_period_us = kGlitchPeriodUs},
-    {.switch_id = kPushButton,
+    {.switch_id = SwitchId::kPushButton,
      .gpio = kPushButtonSwitchBcm,
      .sample_period_us = kSampleRateUs,
-     .glitch_period_us = kGlitchPeriodUs},
+     .glitch_period_us = kPushButtonGlitchPeriodUs},
 };
 
 
