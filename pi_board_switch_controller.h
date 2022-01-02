@@ -4,6 +4,10 @@
 #include "pi_board_switch_processor.h"
 #include "zwave_processor.h"
 
+// Glue between the pi board processor and the zwave processor.
+//
+// Handles the higher level stuff like interpreting button presses
+// and turning them into commands to the zwave processor.
 class PiBoardSwitchController {
 public:
   PiBoardSwitchController(zwave_app::ZWaveProcessor &zwave_processor);
