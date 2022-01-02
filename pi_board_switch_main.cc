@@ -15,6 +15,12 @@ int main() {
   while (true) {
     std::string buf;
     std::cin >> buf;
+
+    if (buf == "blink") {
+      PiBoardSwitchProcessor::GetInstance().SetBlinkStatusLed();
+      continue;
+    }
+
     zwave_processor.Command(buf[0]);
 
     if (buf[0] == 'q') {

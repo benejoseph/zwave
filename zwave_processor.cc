@@ -292,22 +292,22 @@ void ZWaveProcessor::DoNextCommand() {
   }
 
   case '4': {
-    TurnOnSwitchNode(3, true);
+    TurnOnSwitchNode(4, true);
     break;
   }
 
   case '$': {
-    TurnOnSwitchNode(3, false);
+    TurnOnSwitchNode(4, false);
     break;
   }
 
   case '5': {
-    TurnOnSwitchNode(3, true);
+    TurnOnSwitchNode(5, true);
     break;
   }
 
   case '%': {
-    TurnOnSwitchNode(3, false);
+    TurnOnSwitchNode(5, false);
     break;
   }
 
